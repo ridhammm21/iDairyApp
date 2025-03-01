@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "726329073858",
+    "project_id": "idairy-d4257",
+    "storage_bucket": "idairy-d4257.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:726329073858:android:f24f996c98ad67140f5b5b",
+        "android_client_info": {
+          "package_name": "com.example.idairy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKNMDVzAIcDRVPd-DBqQ7vrefJtLuQmL8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
