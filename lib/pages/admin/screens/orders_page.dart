@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -79,37 +81,54 @@ class _OrdersPageState extends State<OrdersPage> {
 
   // ✅ Update order status in BOTH orders and users collection
   Future<void> _updateOrderStatus(String orderId, String newStatus) async {
-    try {
-      DocumentReference orderRef =
-          FirebaseFirestore.instance.collection('orders').doc(orderId);
+  try {
+    DocumentReference orderRef =
+        FirebaseFirestore.instance.collection('orders').doc(orderId);
+    DocumentSnapshot orderSnapshot = await orderRef.get();
 
-      DocumentSnapshot orderSnapshot = await orderRef.get();
-      if (!orderSnapshot.exists) {
-        throw 'Order not found';
-      }
-
-      String uid = orderSnapshot['uid']; // ✅ Get user's UID
-
-      // ✅ Update main orders collection
-      await orderRef.update({'orderStatus': newStatus});
-
-      // ✅ Update order inside user's collection
-      DocumentReference userOrderRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('orders')
-          .doc(orderId);
-
-      await userOrderRef.update({'orderStatus': newStatus});
-
-      // Refresh orders after update
-      _fetchOrders();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update status: ${e.toString()}')),
-      );
+    if (!orderSnapshot.exists) {
+      throw 'Order not found';
     }
+
+    String uid = orderSnapshot['uid'];
+    List<dynamic> items = orderSnapshot['items'].values.toList();
+    String webAppUrl = "https://script.google.com/macros/s/AKfycbzamdgn4l2yVfDeBHd6FvUlHBL-rWI3kzfYLXAVWAQuvIqgp5qMvp1ojS-p5MoxGwg3bg/exec"; // Replace with your Web App URL
+
+    // ✅ Update Firestore Order Status
+    await orderRef.update({'orderStatus': newStatus});
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('orders')
+        .doc(orderId)
+        .update({'orderStatus': newStatus});
+
+    // ✅ Set the Date to First Day of the Month
+    DateTime now = DateTime.now();
+    String date = "1/${now.month}/${now.year}";
+
+    // ✅ Update Google Sheets
+    for (var item in items) {
+      String productName = item['name'];
+      int quantitySold = item['quantity'];
+
+      Uri url = Uri.parse("$webAppUrl?product=$productName&date=$date&quantity=$quantitySold");
+
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        print("Updated $productName in Google Sheet");
+      } else {
+        print("Failed to update $productName: ${response.body}");
+      }
+    }
+
+    _fetchOrders();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to update status: ${e.toString()}')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {

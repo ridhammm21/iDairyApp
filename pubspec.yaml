@@ -43,6 +43,7 @@ dependencies:
   get: ^4.7.2
   hexcolor: ^3.0.1
   intl: ^0.20.2
+  fl_chart: ^0.70.2
 
 dev_dependencies:
   flutter_test:

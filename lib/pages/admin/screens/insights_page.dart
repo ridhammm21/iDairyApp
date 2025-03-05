@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
 
 class InsightsPage extends StatefulWidget {
   const InsightsPage({super.key});
@@ -17,7 +16,8 @@ class _InsightsPageState extends State<InsightsPage> {
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
 
-  List<SalesData> _salesData = [];
+  String _topSellingProduct = '';
+  String _leastSellingProduct = '';
 
   @override
   void initState() {
@@ -49,10 +49,21 @@ class _InsightsPageState extends State<InsightsPage> {
         totalRevenue += amount;
       }
 
+      // Fetch product sales data from the 'products' collection
+      Map<String, int> productSales = await _fetchProductSales();
+
+      // Sort products by sold quantity
+      if (productSales.isNotEmpty) {
+        var sortedProducts = productSales.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));  // Sort by sold quantity in descending order
+
+        _topSellingProduct = sortedProducts.first.key;
+        _leastSellingProduct = sortedProducts.last.key;
+      }
+
       setState(() {
         _totalOrders = totalOrders;
         _totalRevenue = totalRevenue;
-        _salesData = dailyRevenue.entries.map((e) => SalesData(e.key, e.value)).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -65,6 +76,23 @@ class _InsightsPageState extends State<InsightsPage> {
     }
   }
 
+  Future<Map<String, int>> _fetchProductSales() async {
+    try {
+      QuerySnapshot productSnapshot = await FirebaseFirestore.instance.collection('products').get();
+
+      Map<String, int> productSales = {};
+      for (var productDoc in productSnapshot.docs) {
+        String productName = productDoc['name'];
+        int soldQty = productDoc['sold'] ?? 0;
+
+        productSales[productName] = soldQty;
+      }
+      return productSales;
+    } catch (e) {
+      return {};
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,46 +101,50 @@ class _InsightsPageState extends State<InsightsPage> {
         padding: const EdgeInsets.all(16.0),
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      DropdownButton<int>(
-                        value: _selectedMonth,
-                        items: List.generate(12, (index) => DropdownMenuItem(value: index + 1, child: Text('${index + 1}'))),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedMonth = value!;
-                            _isLoading = true;
-                          });
-                          _fetchInsightsData();
-                        },
-                      ),
-                      const SizedBox(width: 10),
-                      DropdownButton<int>(
-                        value: _selectedYear,
-                        items: List.generate(10, (index) {
-                          int year = DateTime.now().year - 5 + index;
-                          return DropdownMenuItem(value: year, child: Text('$year'));
-                        }),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedYear = value!;
-                            _isLoading = true;
-                          });
-                          _fetchInsightsData();
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildCard('Total Orders for ${_selectedMonth}/${_selectedYear}', '$_totalOrders', Colors.blueAccent),
-                  const SizedBox(height: 20),
-                  _buildCard('Total Revenue for ${_selectedMonth}/${_selectedYear}', '₹${_totalRevenue.toStringAsFixed(2)}', Colors.green),
-                  const SizedBox(height: 20),
-                  Expanded(child: _buildSalesTrendChart()),
-                ],
+            : SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        DropdownButton<int>(
+                          value: _selectedMonth,
+                          items: List.generate(12, (index) => DropdownMenuItem(value: index + 1, child: Text('${index + 1}'))),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedMonth = value!;
+                              _isLoading = true;
+                            });
+                            _fetchInsightsData();
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        DropdownButton<int>(
+                          value: _selectedYear,
+                          items: List.generate(10, (index) {
+                            int year = DateTime.now().year - 5 + index;
+                            return DropdownMenuItem(value: year, child: Text('$year'));
+                          }),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedYear = value!;
+                              _isLoading = true;
+                            });
+                            _fetchInsightsData();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    _buildCard('Total Orders for ${_selectedMonth}/${_selectedYear}', '$_totalOrders', Colors.blueAccent),
+                    const SizedBox(height: 20),
+                    _buildCard('Total Revenue for ${_selectedMonth}/${_selectedYear}', '₹${_totalRevenue.toStringAsFixed(2)}', Colors.green),
+                    const SizedBox(height: 20),
+                    _buildCard('Top Selling Product', _topSellingProduct, Colors.orange),
+                    const SizedBox(height: 20),
+                    _buildCard('Least Selling Product', _leastSellingProduct, Colors.red),
+                  ],
+                ),
               ),
       ),
     );
@@ -129,28 +161,10 @@ class _InsightsPageState extends State<InsightsPage> {
           children: [
             Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            Text(value, style: TextStyle(fontSize: 36, color: valueColor)),
+            Text(value, style: TextStyle(fontSize: 24, color: valueColor)),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSalesTrendChart() {
-    return SfCartesianChart(
-      primaryXAxis: CategoryAxis(),
-      title: ChartTitle(text: 'Sales Trend'),
-      legend: Legend(isVisible: true),
-      tooltipBehavior: TooltipBehavior(enable: true),
-      series: <LineSeries<SalesData, String>>[
-        LineSeries<SalesData, String>(
-          name: 'Revenue',
-          dataSource: _salesData,
-          xValueMapper: (SalesData sales, _) => sales.date,
-          yValueMapper: (SalesData sales, _) => sales.revenue,
-          dataLabelSettings: DataLabelSettings(isVisible: true),
-        )
-      ],
     );
   }
 }

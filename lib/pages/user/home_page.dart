@@ -16,52 +16,50 @@ class _HomePageState extends State<HomePage> {
 
   // Function to add product to cart in local storage
   Future<void> _addToCart(Map<String, dynamic> product) async {
-  final prefs = await SharedPreferences.getInstance();
-  Map<String, dynamic> cartItems = {}; // Stores productId as key
+    final prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> cartItems = {}; // Stores productId as key
 
-  // Retrieve existing cart items
-  List<String>? storedCart = prefs.getStringList('cart');
-  if (storedCart != null) {
-    for (var item in storedCart) {
-      var parts = item.split(':');
-      if (parts.length == 4) {
-        cartItems[parts[0]] = {
-          'name': parts[1],
-          'quantity': int.parse(parts[2]),
-          'price': double.parse(parts[3])
-        };
+    // Retrieve existing cart items
+    List<String>? storedCart = prefs.getStringList('cart');
+    if (storedCart != null) {
+      for (var item in storedCart) {
+        var parts = item.split(':');
+        if (parts.length == 4) {
+          cartItems[parts[0]] = {
+            'name': parts[1],
+            'quantity': int.parse(parts[2]),
+            'price': double.parse(parts[3])
+          };
+        }
       }
     }
+
+    // Use productId to avoid duplication issues
+    String productId = product['productId'];
+
+    if (cartItems.containsKey(productId)) {
+      cartItems[productId]['quantity'] += 1;
+    } else {
+      cartItems[productId] = {
+        'name': product['name'],
+        'quantity': 1,
+        'price': product['price'],
+      };
+    }
+
+    // Save updated cart to SharedPreferences
+    await prefs.setStringList(
+      'cart',
+      cartItems.entries.map((e) => '${e.key}:${e.value['name']}:${e.value['quantity']}:${e.value['price']}').toList(),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${product['name']} added to cart!'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
-
-  // Use productId to avoid duplication issues
-  String productId = product['productId'];
-
-  if (cartItems.containsKey(productId)) {
-    cartItems[productId]['quantity'] += 1;
-  } else {
-    cartItems[productId] = {
-      'name': product['name'],
-      'quantity': 1,
-      'price': product['price'],
-    };
-  }
-
-  // Save updated cart to SharedPreferences
-  await prefs.setStringList(
-    'cart',
-    cartItems.entries.map((e) => '${e.key}:${e.value['name']}:${e.value['quantity']}:${e.value['price']}').toList(),
-  );
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('${product['name']} added to cart!'),
-      duration: const Duration(seconds: 1),
-    ),
-  );
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -78,99 +76,230 @@ class _HomePageState extends State<HomePage> {
       drawer: const MyDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: StreamBuilder<QuerySnapshot>(
-          stream: products.snapshots(),
-          builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-            if (snapshot.hasError) {
-              return const Center(child: Text("Something went wrong"));
-            }
-
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return const Center(child: Text("No products available"));
-            }
-
-            return GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // Display 2 items per row
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 3 / 4, // Control height of grid items
-              ),
-              itemCount: snapshot.data!.docs.length,
-              itemBuilder: (context, index) {
-  DocumentSnapshot product = snapshot.data!.docs[index];
-  Map<String, dynamic> data = product.data()! as Map<String, dynamic>;
-
-  // Check if stock is available
-  bool isOutOfStock = data['stock'] == 0;
-
-  return GestureDetector(
-    onTap: () => isOutOfStock ? null : _addToCart(data), // Disable tap if out of stock
-    child: Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      elevation: 5,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.shopping_bag,
-                  size: 80,
-                  color: Colors.grey,
-                ), // Placeholder for product image
+            // Top-selling products recommendation section with horizontal scroll
+            StreamBuilder<QuerySnapshot>(
+              stream: products.orderBy('sold', descending: true).limit(4).snapshots(),
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Something went wrong"));
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No products available"));
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Top Selling Products',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 250, // Adjust the height to fit your card
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          DocumentSnapshot product = snapshot.data!.docs[index];
+                          Map<String, dynamic> data = product.data()! as Map<String, dynamic>;
+
+                          return GestureDetector(
+                            onTap: () => _addToCart(data),
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 5,
+                              child: Container(
+                                width: 180, // Fixed width for identical shape
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[200],
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Center(
+                                              child: Image.asset(
+                                                'images/product.png', // Updated image
+                                                width: 80, // Adjust the size as needed
+                                                height: 80, // Adjust the size as needed
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 10,
+                                            right: 10,
+                                            child: Icon(
+                                              Icons.whatshot,
+                                              size: 30,
+                                              color: Colors.red, // Fire icon color
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      data['name'],
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      '₹${data['price'].toString()}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              },
+            ),
+            const Divider(),
+
+            // All products list section
+            const Text(
+              'All Products',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 10),
-            Text(
-              data['name'],
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 5),
-            Text(
-              '₹${data['price'].toString()}',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.green[700],
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 5),
-            if (isOutOfStock)
-              Text(
-                'Out of Stock',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
+            StreamBuilder<QuerySnapshot>(
+              stream: products.snapshots(),
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Something went wrong"));
+                }
 
-            );
-          },
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No products available"));
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true, // Allow GridView to take limited space in the ListView
+                  physics: NeverScrollableScrollPhysics(), // Disable scrolling for this grid, since ListView handles scrolling
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, // Display 2 items per row
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 3 / 4, // Control height of grid items
+                  ),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    DocumentSnapshot product = snapshot.data!.docs[index];
+                    Map<String, dynamic> data = product.data()! as Map<String, dynamic>;
+
+                    // Check if stock is available
+                    bool isOutOfStock = data['stock'] == 0;
+
+                    return GestureDetector(
+                      onTap: () => isOutOfStock ? null : _addToCart(data), // Disable tap if out of stock
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 5,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Center(
+                                        child: Image.asset(
+                                          'images/product.png', // Updated image
+                                          width: 80, // Adjust the size as needed
+                                          height: 80, // Adjust the size as needed
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                data['name'],
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                '₹${data['price'].toString()}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.green[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              if (isOutOfStock)
+                                Text(
+                                  'Out of Stock',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

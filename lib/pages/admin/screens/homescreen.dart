@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:idairy/pages/admin/screens/view_product.dart';
 import 'package:idairy/pages/admin/screens/insights_page.dart';
-import 'package:idairy/pages/admin/screens/orders_page.dart'; // Import Orders Page
+import 'package:idairy/pages/admin/screens/orders_page.dart';
+import 'package:idairy/pages/admin/screens/forecast.dart'; // ✅ Import Forecast Page
 import 'package:idairy/services/auth/auth_service.dart';
 
 class AdminHome extends StatefulWidget {
@@ -19,10 +20,12 @@ class _AdminHomeState extends State<AdminHome> {
 
   int _currentIndex = 0;
 
+  // ✅ Added ForecastPage() to the list
   final List<Widget> _pages = [
-    const ViewProduct(), // Product Page
-    const OrdersPage(),  // Orders Page
-    const InsightsPage(), // Insights Page
+    const ViewProduct(),  // Index 0
+    const OrdersPage(),   // Index 1
+    const InsightsPage(), // Index 2
+    const ForecastPage(), // Index 3 ✅ Fixing the error
   ];
 
   @override
@@ -38,10 +41,14 @@ class _AdminHomeState extends State<AdminHome> {
         ],
       ),
 
-      body: _pages[_currentIndex],
+      body: _pages[_currentIndex], // ✅ Fix: Now has correct index range
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed, // ✅ Prevents icons from disappearing
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -50,15 +57,19 @@ class _AdminHomeState extends State<AdminHome> {
         items: const [
           BottomNavigationBarItem(
             label: 'Products',
-            icon: Icon(Icons.pages),
+            icon: Icon(Icons.shopping_bag),
           ),
           BottomNavigationBarItem(
             label: 'Orders',
-            icon: Icon(Icons.shopping_cart), // Orders icon
+            icon: Icon(Icons.receipt_long),
           ),
           BottomNavigationBarItem(
             label: 'Insights',
-            icon: Icon(Icons.insights),
+            icon: Icon(Icons.analytics),
+          ),
+          BottomNavigationBarItem(
+            label: 'Forecast',
+            icon: Icon(Icons.show_chart), // ✅ Icon for Forecast Page
           ),
         ],
       ),
