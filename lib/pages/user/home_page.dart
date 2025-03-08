@@ -98,7 +98,7 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Top Selling Products',
+                      'Trending Products',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
