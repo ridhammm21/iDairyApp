@@ -264,10 +264,16 @@ class _HomePageState extends State<HomePage> {
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Center(
-                                        child: Image.asset(
-                                          'images/product.png', // Updated image
-                                          width: 80, // Adjust the size as needed
-                                          height: 80, // Adjust the size as needed
+                                        child: Image.network(
+                                          data['imageUrl'] ?? 'images/product.png',
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          errorBuilder: (context, error, stackTrace) => Image.asset(
+                                            'images/product.png',
+                                            width: 80,
+                                            height: 80,
+                                          ),
                                         ),
                                       ),
                                     ),

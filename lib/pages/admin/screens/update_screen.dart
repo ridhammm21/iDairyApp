@@ -16,6 +16,7 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
   late TextEditingController priceController;
   late TextEditingController stockController;
   late TextEditingController descriptionController;
+  late TextEditingController imageController;
 
   final _formKey = GlobalKey<FormState>();
   bool isLoading = false; // Loading indicator flag
@@ -30,6 +31,7 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
     priceController = TextEditingController(text: widget.initialProductData['price'].toString());
     stockController = TextEditingController(text: widget.initialProductData['stock'].toString());
     descriptionController = TextEditingController(text: widget.initialProductData['description']);
+    imageController = TextEditingController(text: widget.initialProductData['imageUrl'] ?? '');
   }
 
   // Function to update the product in Firestore
@@ -45,6 +47,7 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
           'price': double.parse(priceController.text),
           'stock': int.parse(stockController.text),
           'description': descriptionController.text,
+          'imageUrl': imageController.text.isEmpty ? null : imageController.text,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -157,6 +160,16 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: imageController,
+                      decoration: InputDecoration(
+                        labelText: 'Image URL (Optional)',
+                        border: OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Colors.grey[200],
+                      ),
+                    ),
                     const SizedBox(height: 30),
                     SizedBox(
                       width: double.infinity,
@@ -167,9 +180,7 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
                           backgroundColor: Colors.blue,
                           textStyle: const TextStyle(fontSize: 18),
                         ),
-                        child: const Text('Update Product',style: TextStyle(
-                          color: Colors.white
-                        ),),
+                        child: const Text('Update Product', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                   ],

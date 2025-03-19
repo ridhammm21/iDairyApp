@@ -1,7 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http; // ✅ For sending data to Google Sheets
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -15,6 +13,7 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController priceController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController stockController = TextEditingController();
+  final TextEditingController imageController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
   bool isLoading = false;
@@ -23,58 +22,6 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   void initState() {
     super.initState();
-    _handleMonthlyReset();
-  }
-
-  /// ✅ Function to handle sales tracking and reset
-  Future<void> _handleMonthlyReset() async {
-    DateTime now = DateTime.now();
-    int lastDay = DateTime(now.year, now.month + 1, 0).day;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // Check if it's the last day of the month and hasn't been recorded yet
-    if (now.day == lastDay && prefs.getInt('lastProcessedMonth') != now.month) {
-      await _storeSalesData();
-      prefs.setInt('lastProcessedMonth', now.month);
-    }
-
-    // Reset `sold` count on the 1st day of the new month
-    if (now.day == 1) {
-      await _resetSoldCount();
-    }
-  }
-
-  /// ✅ Store the last day's total sales in Google Sheets
-  Future<void> _storeSalesData() async {
-    QuerySnapshot snapshot = await products.get();
-    for (var doc in snapshot.docs) {
-      int sold = doc['sold'] ?? 0;
-      if (sold > 0) {
-        _sendSoldDataToGoogleSheets(doc['name'], sold);
-      }
-    }
-  }
-
-  /// ✅ Reset sold count to 0 on the 1st day of the new month
-  Future<void> _resetSoldCount() async {
-    QuerySnapshot snapshot = await products.get();
-    for (var doc in snapshot.docs) {
-      await doc.reference.update({'sold': 0});
-    }
-  }
-
-  /// ✅ Send data to Google Sheets (Replace with your script URL)
-  Future<void> _sendSoldDataToGoogleSheets(String productName, int sold) async {
-    String url = "https://script.google.com/macros/s/AKfycbz20CrJk55tAo022GNoQclNRX8vJWRDiBZ2UOEd_ro79OTwun-JKuyAdHmu2j-uXlkQ/exec";
-    try {
-      await http.post(Uri.parse(url), body: {
-        'productName': productName,
-        'sold': sold.toString(),
-      });
-      debugPrint("✅ Sent $sold units of $productName to Google Sheets");
-    } catch (e) {
-      debugPrint("❌ Error sending data: $e");
-    }
   }
 
   /// ✅ Function to add a new product
@@ -90,6 +37,7 @@ class _AddProductPageState extends State<AddProductPage> {
           'price': double.parse(priceController.text),
           'description': descriptionController.text,
           'stock': int.parse(stockController.text),
+          'imageUrl': imageController.text,
           'sold': 0,
         });
 
@@ -117,6 +65,7 @@ class _AddProductPageState extends State<AddProductPage> {
     priceController.clear();
     descriptionController.clear();
     stockController.clear();
+    imageController.clear();
   }
 
   @override
@@ -159,6 +108,21 @@ class _AddProductPageState extends State<AddProductPage> {
                       decoration: InputDecoration(labelText: 'Stock Quantity', border: const OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                       validator: (value) => int.tryParse(value!) == null ? 'Please enter a valid number' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: imageController,
+                      decoration: InputDecoration(labelText: 'Image URL', border: const OutlineInputBorder()),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter an image URL';
+                        }
+                        Uri? uri = Uri.tryParse(value);
+                        if (uri == null || !(uri.isAbsolute && (uri.scheme == 'http' || uri.scheme == 'https'))) {
+                          return 'Please enter a valid URL';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 30),
                     SizedBox(
