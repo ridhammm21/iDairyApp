@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:idairy/pages/user/cart_page.dart';
 import 'package:idairy/pages/user/home_page.dart';
-import 'package:idairy/pages/setting_page.dart';
+import 'package:idairy/pages/user/setting_page.dart';
 import 'package:idairy/pages/user/wallet_page.dart';
 import 'package:idairy/utils/global_colors.dart';
 

@@ -165,7 +165,11 @@ class _AddProductPageState extends State<AddProductPage> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: addProduct,
-                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.blue,
+                          textStyle: const TextStyle(fontSize: 18),
+                        ),
                         child: const Text('Add Product', style: TextStyle(color: Colors.white)),
                       ),
                     ),

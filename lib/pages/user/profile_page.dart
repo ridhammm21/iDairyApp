@@ -138,7 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   icon: const Icon(Icons.logout, color: Colors.white),
                   label: const Text("Logout", style: TextStyle(fontSize: 18, color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: Colors.red,
                     padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   ),
                 ),
