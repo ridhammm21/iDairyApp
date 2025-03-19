@@ -293,7 +293,7 @@ class _CartPageState extends State<CartPage> {
                           ),
                           child: const Center(
                             child: Text(
-                              'Slide to Pay',
+                              'Click to Pay',
                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                             ),
                           ),

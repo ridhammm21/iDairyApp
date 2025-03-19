@@ -32,14 +32,22 @@ class _OrdersPageState extends State<OrdersPage> {
 
       List<DocumentSnapshot> orders = querySnapshot.docs;
 
-      // ✅ Sort so 'Pending' comes first
-      orders.sort((a, b) {
-        String statusA = a['orderStatus'] ?? 'Pending';
-        return statusA == 'Pending' ? -1 : 1;
-      });
+      // ✅ Separate orders by status
+      List<DocumentSnapshot> pendingOrders = [];
+      List<DocumentSnapshot> otherOrders = [];
 
+      for (var order in orders) {
+        String status = order['orderStatus'] ?? 'Pending';
+        if (status == 'Pending') {
+          pendingOrders.add(order);
+        } else {
+          otherOrders.add(order);
+        }
+      }
+
+      // ✅ Combine pending first, then others
       setState(() {
-        _orders = orders;
+        _orders = [...pendingOrders, ...otherOrders];
         _isLoading = false;
       });
 
@@ -61,6 +69,7 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
+
   // Fetch user details from Firestore
   Future<void> _fetchUserDetails(String uid) async {
     try {
@@ -80,55 +89,88 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   // ✅ Update order status in BOTH orders and users collection
+  // ✅ Update order status & handle refunds
   Future<void> _updateOrderStatus(String orderId, String newStatus) async {
-  try {
-    DocumentReference orderRef =
-        FirebaseFirestore.instance.collection('orders').doc(orderId);
-    DocumentSnapshot orderSnapshot = await orderRef.get();
+    try {
+      DocumentReference orderRef =
+          FirebaseFirestore.instance.collection('orders').doc(orderId);
+      DocumentSnapshot orderSnapshot = await orderRef.get();
 
-    if (!orderSnapshot.exists) {
-      throw 'Order not found';
-    }
-
-    String uid = orderSnapshot['uid'];
-    List<dynamic> items = orderSnapshot['items'].values.toList();
-    String webAppUrl = "https://script.google.com/macros/s/AKfycbzamdgn4l2yVfDeBHd6FvUlHBL-rWI3kzfYLXAVWAQuvIqgp5qMvp1ojS-p5MoxGwg3bg/exec"; // Replace with your Web App URL
-
-    // ✅ Update Firestore Order Status
-    await orderRef.update({'orderStatus': newStatus});
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('orders')
-        .doc(orderId)
-        .update({'orderStatus': newStatus});
-
-    // ✅ Set the Date to First Day of the Month
-    DateTime now = DateTime.now();
-    String date = "1/${now.month}/${now.year}";
-
-    // ✅ Update Google Sheets
-    for (var item in items) {
-      String productName = item['name'];
-      int quantitySold = item['quantity'];
-
-      Uri url = Uri.parse("$webAppUrl?product=$productName&date=$date&quantity=$quantitySold");
-
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        print("Updated $productName in Google Sheet");
-      } else {
-        print("Failed to update $productName: ${response.body}");
+      if (!orderSnapshot.exists) {
+        throw 'Order not found';
       }
-    }
 
-    _fetchOrders();
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to update status: ${e.toString()}')),
-    );
+      String uid = orderSnapshot['uid'];
+      double totalAmount = orderSnapshot['totalAmount'] ?? 0.0;
+      List<dynamic> items = orderSnapshot['items'].values.toList();
+      String webAppUrl = "https://script.google.com/macros/s/AKfycbzamdgn4l2yVfDeBHd6FvUlHBL-rWI3kzfYLXAVWAQuvIqgp5qMvp1ojS-p5MoxGwg3bg/exec"; // Replace with your Web App URL
+
+      // ✅ Update Firestore Order Status
+      await orderRef.update({'orderStatus': newStatus});
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('orders')
+          .doc(orderId)
+          .update({'orderStatus': newStatus});
+
+      // ✅ Handle refund if order is cancelled
+      if (newStatus == 'Cancelled') {
+        DocumentReference userRef =
+            FirebaseFirestore.instance.collection('users').doc(uid);
+
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          DocumentSnapshot userSnapshot = await transaction.get(userRef);
+          if (!userSnapshot.exists) throw 'User not found';
+
+          double currentBalance = userSnapshot['wallet'] ?? 0.0;
+          double newBalance = currentBalance + totalAmount;
+
+          transaction.update(userRef, {'wallet': newBalance});
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order cancelled. ₹$totalAmount refunded!')),
+        );
+      } else {
+        // ✅ Update Google Sheets if order is completed
+        DateTime now = DateTime.now();
+        String date = "1/${now.month}/${now.year}";
+
+        for (var item in items) {
+          String productName = item['name'];
+          int quantitySold = item['quantity'];
+
+          Uri url = Uri.parse("$webAppUrl?product=$productName&date=$date&quantity=$quantitySold");
+
+          final response = await http.get(url);
+          if (response.statusCode == 200) {
+            print("Updated $productName in Google Sheet");
+          } else {
+            print("Failed to update $productName: ${response.body}");
+          }
+        }
+      }
+
+      _fetchOrders();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update status: ${e.toString()}')),
+      );
+    }
   }
-}
+
+  TextStyle getOrderStatusStyle(String status) {
+    switch (status) {
+      case 'Completed':
+        return const TextStyle(fontWeight: FontWeight.bold, color: Colors.green);
+      case 'Cancelled':
+        return const TextStyle(fontWeight: FontWeight.bold, color: Colors.red);
+      default:
+        return const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -163,12 +205,7 @@ class _OrdersPageState extends State<OrdersPage> {
                             title: Text('Order ID: $orderId'),
                             subtitle: Text(
                               'Total: ₹${order['totalAmount']} | Status: $status',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: status == 'Completed'
-                                    ? Colors.green
-                                    : Colors.orange,
-                              ),
+                              style: getOrderStatusStyle(status),
                             ),
                             trailing: IconButton(
                               icon: Icon(
@@ -259,7 +296,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
                                   const SizedBox(height: 10),
 
-                                  if (status == 'Pending')
+                                  if (status == 'Pending') ...[
                                     ElevatedButton.icon(
                                       icon: const Icon(Icons.check),
                                       label: const Text('Complete Order'),
@@ -268,10 +305,22 @@ class _OrdersPageState extends State<OrdersPage> {
                                         foregroundColor: Colors.white,
                                       ),
                                       onPressed: () {
-                                        _updateOrderStatus(
-                                            orderId, 'Completed');
+                                        _updateOrderStatus(orderId, 'Completed');
                                       },
                                     ),
+                                    const SizedBox(height: 8),
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.cancel),
+                                      label: const Text('Cancel Order'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () {
+                                        _updateOrderStatus(orderId, 'Cancelled');
+                                      },
+                                    ),
+                                  ]
                                 ],
                               ),
                             ),

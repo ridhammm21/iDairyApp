@@ -6,9 +6,8 @@ import 'package:intl/intl.dart';
 
 String formatDate(Timestamp timestamp) {
   DateTime dateTime = timestamp.toDate();
-  return DateFormat('dd/MM/yy hh:mm a').format(dateTime); // e.g., "28/02/25 03:45 PM"
+  return DateFormat('dd/MM/yy hh:mm a').format(dateTime);
 }
-
 
 class OrderPage extends StatelessWidget {
   const OrderPage({super.key});
@@ -28,8 +27,6 @@ class OrderPage extends StatelessWidget {
 
     return querySnapshot.docs.map((doc) {
       final data = doc.data();
-
-      // Extract items as a list
       final itemsMap = data['items'] as Map<String, dynamic>;
       final itemsList = itemsMap.entries.map((entry) {
         final item = entry.value as Map<String, dynamic>;
@@ -45,11 +42,10 @@ class OrderPage extends StatelessWidget {
         'timestamp': data['timestamp'],
         'items': itemsList,
         'totalAmount': data['totalAmount'],
-        'orderStatus': data['orderStatus'] ?? 'Pending', // Default to 'Pending'
+        'orderStatus': data['orderStatus'] ?? 'Pending',
       };
     }).toList()
       ..sort((a, b) {
-        // Custom sorting: Pending first, then sort by latest timestamp
         if (a['orderStatus'] == 'Pending' && b['orderStatus'] != 'Pending') {
           return -1;
         } else if (a['orderStatus'] != 'Pending' && b['orderStatus'] == 'Pending') {
@@ -59,7 +55,6 @@ class OrderPage extends StatelessWidget {
         }
       });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -86,12 +81,19 @@ class OrderPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 final order = orders[index];
                 final items = order['items'] as List<dynamic>;
-                // final timestamp = (order['timestamp'] as Timestamp).toDate();
                 final status = order['orderStatus'];
+
+                Color cardColor = status == 'Cancelled'
+                    ? Colors.red[100]!
+                    : (status == 'Pending' ? Colors.amber[100]! : Colors.green[100]!);
+
+                Color statusColor = status == 'Cancelled'
+                    ? Colors.red
+                    : (status == 'Pending' ? Colors.orange : Colors.green);
 
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  color: status == 'Pending' ? Colors.amber[100] : Colors.green[100], // Different color for status
+                  color: cardColor,
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Column(
@@ -115,7 +117,7 @@ class OrderPage extends StatelessWidget {
                           "Status: $status",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: status == 'Pending' ? Colors.red : Colors.green,
+                            color: statusColor,
                           ),
                         ),
                       ],
