@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:idairy/components/my_drawer.dart';
+import 'package:idairy/pages/user/chatbot_page.dart';
 import 'package:idairy/utils/global_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -72,6 +73,18 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: GlobalColors.primary,
         foregroundColor: GlobalColors.textColor,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline),
+            onPressed: () {
+              // Navigate to Chatbot Page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ChatPage()),
+              );
+            },
+          ),
+        ],
       ),
       drawer: const MyDrawer(),
       body: Padding(
