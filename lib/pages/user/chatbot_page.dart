@@ -64,7 +64,7 @@ class _ChatPageState extends State<ChatPage> {
     );
     _addMessage(typingMessage);
 
-    const apiKey = "AIzaSyDgAZoZUTGb3dS7tYD2-z1XM_vw5-rolTE"; // Replace with your actual API key
+    const apiKey = ""; // Replace with your actual API key
     final model = GenerativeModel(model: 'gemini-1.5-flash-latest', apiKey: apiKey);
 
     String initialContext = """
