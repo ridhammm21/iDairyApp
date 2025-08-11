@@ -48,11 +48,11 @@
   pip install pandas numpy matplotlib statsmodels
 
 ## 🖼️ Screenshots
-<h3>📸 App Screenshots</h3>
 
-<p>
-  <img src="Screenshots/3%20trending.jpg" alt="Trending Screen" width="200"/>
-  <img src="Screenshots/9%20order%20history.jpg" alt="Order Screen" width="200"/>
-  <img src="Screenshots/10%20products.jpg" alt="Admin Screen" width="200"/>
-  <img src="Screenshots/17%20model.jpg" alt="Model Screen" width="200"/>
-</p>
+| Trending Screen | Order Screen |
+|-----------------|--------------|
+| <img src="Screenshots/3%20trending.jpg" alt="Trending Screen" width="250"/> | <img src="Screenshots/9%20order%20history.jpg" alt="Order Screen" width="250"/> |
+
+| Admin Screen | Model Screen |
+|--------------|--------------|
+| <img src="Screenshots/10%20products.jpg" alt="Admin Screen" width="250"/> | <img src="Screenshots/17%20model.jpg" alt="Model Screen" width="250"/> |
