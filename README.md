@@ -47,13 +47,13 @@
   ```bash
   pip install pandas numpy matplotlib statsmodels
 
-## 📸 Screenshots
+## Screenshots
 
 | Trending Screen | Order Screen |
 |-----------------|--------------|
-| ![Trending Screen](Screenshots/trending.jpg) | ![Order Screen](Screenshots/order%20history.jpg) |
+| ![Trending Screen](Screenshots/3%20trending.jpg) | ![Order Screen](Screenshots/9%20order%20history.jpg) |
 
 | Admin Screen | Model Screen |
 |--------------|--------------|
-| ![Admin Screen](Screenshots/products.jpg) | ![Model Screen](Screenshots/model.jpg) |
+| ![Admin Screen](Screenshots/10%20products.jpg) | ![Model Screen](Screenshots/17%20model.jpg) |
 
