@@ -51,9 +51,9 @@
 
 | Trending Screen | Order Screen |
 |-----------------|--------------|
-| ![Trending Screen](Screenshots/3%20trending.jpg) | ![Order Screen](Screenshots/9%20order%20history.jpg) |
+| <img src="Screenshots/3%20trending.jpg" alt="Trending Screen" width="300"/> | <img src="Screenshots/9%20order%20history.jpg" alt="Order Screen" width="300"/> |
 
 | Admin Screen | Model Screen |
 |--------------|--------------|
-| ![Admin Screen](Screenshots/10%20products.jpg) | ![Model Screen](Screenshots/17%20model.jpg) |
+| <img src="Screenshots/10%20products.jpg" alt="Admin Screen" width="300"/> | <img src="Screenshots/17%20model.jpg" alt="Model Screen" width="300"/> |
 
